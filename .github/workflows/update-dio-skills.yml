@@ -26,10 +26,18 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       
-      - name: Buscar dados da DIO
+      - name: Setup Chrome e ChromeDriver
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
+      
+      - name: Buscar dados da DIO (com Selenium)
+        env:
+          DIO_EMAIL: ${{ secrets.DIO_EMAIL }}
+          DIO_PASSWORD: ${{ secrets.DIO_PASSWORD }}
         run: |
           cd ${{ github.workspace }}
-          python scripts/fetch_dio_data.py
+          python scripts/fetch_dio_data_selenium.py
       
       - name: Atualizar currículo HTML
         run: |
@@ -46,6 +54,6 @@ jobs:
         run: |
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
-          git add index.html dio-config.json
+          git add index.html dio-config.json dio-data.json
           git commit -m "🎓 Update DIO certificates and skills [automated]"
           git push
