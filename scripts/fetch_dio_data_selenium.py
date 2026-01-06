@@ -59,7 +59,10 @@ def login_dio(driver, email, password):
     Returns:
         bool: True se login foi bem-sucedido, False caso contrário
     """
-    print(f"🔐 Realizando login na DIO com email: {email[:3]}***{email[-10:]}")
+    # Mask email for logging (show only first 2 chars and domain)
+    email_parts = email.split('@')
+    masked_email = f"{email[:2]}***@{email_parts[1] if len(email_parts) > 1 else '***'}"
+    print(f"🔐 Realizando login na DIO com email: {masked_email}")
     
     try:
         # Navegar para página de login
@@ -114,13 +117,14 @@ def login_dio(driver, email, password):
         print("🖱️  Botão de login clicado")
         
         # Aguardar o login ser processado (esperar por redirecionamento ou elemento da página logada)
-        time.sleep(5)
+        # Usar WebDriverWait com timeout adequado
+        wait_login = WebDriverWait(driver, 10)
         
         # Verificar se o login foi bem-sucedido
         # Procurar por elementos que indicam login bem-sucedido
         try:
             # Tentar encontrar elemento de perfil ou navegação autenticada
-            wait.until(
+            wait_login.until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, '[data-testid="user-menu"], .user-menu, [class*="avatar"], [class*="profile"]'))
             )
             print("✅ Login realizado com sucesso!")
@@ -165,13 +169,18 @@ def fetch_certificates(driver, username):
         driver.get(profile_url)
         
         # Aguardar o carregamento da página
-        time.sleep(5)
+        wait = WebDriverWait(driver, 10)
+        try:
+            # Esperar que o body esteja presente
+            wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+        except TimeoutException:
+            print("⚠️  Timeout ao carregar página do perfil")
         
-        # Tentar rolar a página para carregar todo o conteúdo
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(2)
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(2)
+        # Tentar rolar a página para carregar todo o conteúdo (lazy loading)
+        # Fazer múltiplas rolagens com pequena pausa para carregar conteúdo dinâmico
+        for _ in range(3):
+            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            time.sleep(1)  # Pequena pausa necessária para lazy loading
         
         # Buscar links de certificados (hermes.dio.me)
         certificates = []
